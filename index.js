@@ -3,6 +3,35 @@
 // iniciaremos criando uma referencia do express comn a importaçao de modulo 
 const express = require("express"); 
 
+
+// vamos Importar o modulo mangoose que fara a interface entre o 
+//nodejs eo banco de dados mongodb 
+const mongoose =require("mongoose"); 
+
+
+
+ const url= "mongodb+srv://francisco:<franc1991>@clustercliente.pxsw7.mongodb.net/primeiraapi?retryWrites=true&w=majority"
+ mongoose.connect(uri,{ useNewURLParser: true, useUnifiedTopology:true })
+
+// Vamos criar a estrutura da tabela com o comando schema 
+
+const tabela = mongoose.Schema({
+    nome:{type:String, required:true},
+    email:{type:String,required:true,unique:true},
+    cpf:{type:String,required:true,unique:true},
+    usuario:{type:String,required:true,unique:true},
+    sennha:{type:String,required:true,}
+});
+
+
+    // execucao da tabela
+
+    const Cliente = mongoose.model("tbcliente",tabela);
+
+
+
+
+
 // criar uma referencia do servidor express para utiliza-lo
 
 const app =express(); 
@@ -22,8 +51,21 @@ DELETE -> é usado para apagar dados do projeto .
 */
 
 
+
+
+
+
 app.get("/api/cliente/",(req,res)=>
-{res.send("vc esta na rota do GET")}); 
+{
+    Cliente.find(
+        (erro,dados)=>{
+            if (erro){
+                return res.status(400).send({output:`erro ao tentar ler os clientes -> ${erro}`});
+            }
+            res.status(200).send({output:dados});
+        }
+    );
+}); 
 
 app.post("/api/cliente/cadastro",(req,res)=>{
     res.send(`Os dados enviados foram enviados ${req.body.nome}`);
