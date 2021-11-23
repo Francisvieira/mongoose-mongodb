@@ -10,6 +10,12 @@ const mongoose = require("mongoose");
 
 
 
+//importacao do modulo bcrypt para criptografia
+const bcrypt = require("bcrypt");
+
+
+
+
 const url = "mongodb+srv://francisco:franc1991@clustercliente.pxsw7.mongodb.net/primeiraapi?retryWrites=true&w=majority"
 mongoose.connect(url, { useNewURLParser: true, useUnifiedTopology: true })
 
@@ -22,6 +28,22 @@ const tabela = mongoose.Schema({
     usuario: { type: String, required: true, unique: true },
     senha: { type: String, required: true, }
 });
+
+// aplicacao de criptografia do bcrypt a tabela de cadastro de clientes sera feita um apasso antes do salvamento dos dados do cliente, vamos usar o comando PRE
+
+
+
+
+tabela.pre("save",function(next){
+    let cliente =this;
+    if(!cliente.isModified('senha')) return next()
+    bcrypt.hash(cliente.senha,10,(erro,rs)=>{
+        if (erro )return console.log (`erro ao gerar senha ->${erro}`);
+        cliente.senha=rs;
+        return next();
+    })
+
+})
 
 
 // execucao da tabela
@@ -64,7 +86,21 @@ app.get("/api/cliente/", (req, res) => {
             res.status(200).send({ output: dados });
         }
     );
+}); 
+
+
+app.get("/api/cliente/:id", (req, res) => {
+    Cliente.findById(req.params.id,
+        (erro, dados) => {
+            if (erro) {
+                return res.status(400).send({ output: `erro ao tentar ler os clientes -> ${erro}` });
+            }
+            res.status(200).send({ output: dados });
+        }
+    );
 });
+
+
 
 app.post("/api/cliente/cadastro", (req, res) => {
     const cliente = new Cliente(req.body);
@@ -73,6 +109,25 @@ app.post("/api/cliente/cadastro", (req, res) => {
     })
         .catch((erro) => res.status(400).send({ output: `erro ao tentar cadastrar o cliente -> ${erro}` }))
 });
+
+
+
+app.post("/api/cliente/login",(req,res)=>{
+ const us =req.body.usuario;
+ const sh = req.body.senha;
+ Cliente.findOne({usuario:us},(erro,dados)=> {
+     if(erro){
+         return res.status(400).send({output:`Usuario não localizado ->${erro}`})
+     } 
+    bcrypt.compare(sh,dados.senha,(erro,igual=>{
+        if(erro)return res.status(400).send({output:`erro ao tentar logar ->${erro}`})
+        if(erro)return res.status(400).send({output:`erro ao tentar logar ->${erro}`})
+        res.status(200).send({output:`logado`,payload:dados});
+    }))
+     
+ })
+})
+
 
 
 
