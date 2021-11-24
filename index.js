@@ -13,8 +13,14 @@ const mongoose = require("mongoose");
 //importacao do modulo bcrypt para criptografia
 const bcrypt = require("bcrypt");
 
+// jsonwebtoken é um hash que garante a seçao segura em uma pagina oou grupos de paginas
+//permitindo ou nao o acesso aos conteudos destas paginas ele é gerado a partir de alguns 
+//elementos,tais como:dados que importam tokens(payload),chave secreta,tempo de expiração
+//e metodo de criptografia.
+const jwt = require("jsonwebtoken");
 
 
+const cfn = require ("./config");
 
 const url = "mongodb+srv://francisco:franc1991@clustercliente.pxsw7.mongodb.net/primeiraapi?retryWrites=true&w=majority"
 mongoose.connect(url, { useNewURLParser: true, useUnifiedTopology: true })
@@ -104,7 +110,8 @@ app.get("/api/cliente/:id", (req, res) => {
 
 app.post("/api/cliente/cadastro", (req, res) => {
     const cliente = new Cliente(req.body);
-    cliente.save().then(() => {
+    cliente.save().then(() => { 
+        const gerado =criatoken(req.body.usuario,req.body,nome);
         res.status(201).send({ output: `Cliente cadastrado` })
     })
         .catch((erro) => res.status(400).send({ output: `erro ao tentar cadastrar o cliente -> ${erro}` }))
@@ -112,7 +119,7 @@ app.post("/api/cliente/cadastro", (req, res) => {
 
 
 
-app.post("/api/cliente/login",(req,res)=>{
+app.post("/api/cliente/login", (req,res)=>{
  const us =req.body.usuario;
  const sh = req.body.senha;
  Cliente.findOne({usuario:us},(erro,dados)=> {
@@ -121,8 +128,9 @@ app.post("/api/cliente/login",(req,res)=>{
      } 
     bcrypt.compare(sh,dados.senha,(erro,igual=>{
         if(erro)return res.status(400).send({output:`erro ao tentar logar ->${erro}`})
-        if(erro)return res.status(400).send({output:`erro ao tentar logar ->${erro}`})
-        res.status(200).send({output:`logado`,payload:dados});
+        
+        const gerado= criatoken(dados.usuario,dados.nome);
+        res.status(200).send({output:`logado`,payload:dados,token:gerado});
     }))
      
  })
@@ -131,7 +139,7 @@ app.post("/api/cliente/login",(req,res)=>{
 
 
 
-app.put("/api/cliente/atualizar/:id", (req, res) => {
+app.put("/api/cliente/atualizar/:id", verifica, (req, res) => {
     Cliente.findByIdAndUpdate(req.params.id,req.body,(erro,dados) => { 
         if(erro){
             return res.status(400).send({output:`Erro ao tentar atualizar -> ${erro}`});
@@ -141,12 +149,34 @@ app.put("/api/cliente/atualizar/:id", (req, res) => {
     })
 })
 
-app.delete("/api/cliente/apagar/:id", (req, res) => {
+app.delete("/api/cliente/apagar/:id", verifica, (req, res) => {
     Cliente.findByIdAndDelete(req.params.id,(erro,dados)=>{
         if(erro){
             return res.status(204).send({});
         };
     })
 })
+
+//teste do jwt 
+//==================================gerar token=======================//
+const criatoken=(usuario,nome )=>{
+
+   return jwt.sign({nome:"francisco",id:'email@gmail.com'},cfn.jwt_key,{expiresIn:cfn.jwt_expires});
+};
+
+//=============================teste de validacao do token ========
+function verifica(req,res,next){
+    const token_gerado =req.headers.token;
+    if(!token_gerado){
+        return res.status(401).send({output:"Não há token"})
+    } 
+    jwt.verify(token_gerado,cfn.jwt_key,(erro,dados)=>{
+        if(erro){
+            return res.status(401).send({output:"Token invalido"});
+        } 
+        res.status(200).send({output:'Autorizado',payload:`Olá ${dados.nome}`})
+        next();
+    });
+}
 
 app.listen(3000, () => console.log("Servidor online em http://localhost:3000"));
