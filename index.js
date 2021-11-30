@@ -177,7 +177,7 @@ function verifica(req,res,next){
         if(erro){
             return res.status(401).send({output:"Token invalido"});
         } 
-        res.status(200).send({output:'Autorizado',payload:`Olá ${dados.nome}`})
+       
         next();
     });
 }
