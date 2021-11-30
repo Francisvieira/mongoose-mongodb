@@ -8,7 +8,7 @@ const express = require("express");
 //nodejs eo banco de dados mongodb 
 const mongoose = require("mongoose");
 
-
+const cors =require("cors");
 
 //importacao do modulo bcrypt para criptografia
 const bcrypt = require("bcrypt");
@@ -64,6 +64,9 @@ const Cliente = mongoose.model("tbcliente", tabela);
 
 const app = express();
 
+app.use(express.json());
+app.use(cors());
+
 // fazer o servidor express receber e tratar dados em formato json
 app.use(express.json());
 /*
@@ -83,7 +86,7 @@ DELETE -> é usado para apagar dados do projeto .
 
 
 
-app.get("/api/cliente/", (req, res) => {
+app.get("/api/cliente/",verifica, (req, res) => {
     Cliente.find(
         (erro, dados) => {
             if (erro) {
@@ -114,7 +117,7 @@ app.post("/api/cliente/cadastro", (req, res) => {
         const gerado =criatoken(req.body.usuario,req.body,nome);
         res.status(201).send({ output: `Cliente cadastrado` })
     })
-        .catch((erro) => res.status(400).send({ output: `erro ao tentar cadastrar o cliente -> ${erro}` }))
+        .catch((erro) => res.status(400).send({ output: `erro ao tentar cadastrar o cliente`,messangererror:erro  }))
 });
 
 
@@ -164,7 +167,7 @@ const criatoken=(usuario,nome )=>{
    return jwt.sign({nome:"francisco",id:'email@gmail.com'},cfn.jwt_key,{expiresIn:cfn.jwt_expires});
 };
 
-//=============================teste de validacao do token ========
+//=================== validacao do token ========
 function verifica(req,res,next){
     const token_gerado =req.headers.token;
     if(!token_gerado){
